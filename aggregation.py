@@ -20,6 +20,9 @@ from __future__ import annotations
 import torch
 
 
+SELECTED_LAYERS = (-1, -2, -4, -8, -12)
+
+
 def aggregate(
     hidden_states: torch.Tensor,
     attention_mask: torch.Tensor,
@@ -41,21 +44,25 @@ def aggregate(
         Replace or extend the skeleton below with alternative layer selection,
         token pooling (mean, max, weighted), or multi-layer fusion strategies.
     """
-    # ------------------------------------------------------------------
-    # STUDENT: Replace or extend the aggregation below.
-    # ------------------------------------------------------------------
+    mask = attention_mask.to(device=hidden_states.device, dtype=torch.bool)
+    if not bool(mask.any()):
+        mask = torch.ones_like(mask, dtype=torch.bool)
 
-    # Default: last real token of the final transformer layer.
-    layer = hidden_states[-1]          # (seq_len, hidden_dim)
+    real_positions = mask.nonzero(as_tuple=False).flatten()
+    last_pos = int(real_positions[-1].item())
 
-    # Find the index of the last real (non-padding) token.
-    real_positions = attention_mask.nonzero(as_tuple=False)  # (n_real, 1)
-    last_pos = int(real_positions[-1].item())                 # scalar index
+    features: list[torch.Tensor] = []
+    for layer_idx in SELECTED_LAYERS:
+        layer = hidden_states[layer_idx]          # (seq_len, hidden_dim)
+        valid_tokens = layer[mask]                # (n_real_tokens, hidden_dim)
 
-    feature = layer[last_pos]          # (hidden_dim,)
+        mean_pool = valid_tokens.mean(dim=0)
+        last_token = layer[last_pos]
+        max_pool = valid_tokens.max(dim=0).values
 
-    return feature
-    # ------------------------------------------------------------------
+        features.extend([mean_pool, last_token, max_pool])
+
+    return torch.cat(features, dim=0).float()
 
 
 def extract_geometric_features(
@@ -81,12 +88,27 @@ def extract_geometric_features(
         norms, inter-layer cosine similarity (representation drift), or
         sequence length.
     """
-    # ------------------------------------------------------------------
-    # STUDENT: Replace or extend the geometric feature extraction below.
-    # ------------------------------------------------------------------
+    mask = attention_mask.to(device=hidden_states.device, dtype=torch.bool)
+    if not bool(mask.any()):
+        mask = torch.ones_like(mask, dtype=torch.bool)
 
-    # Placeholder: returns an empty tensor (no geometric features).
-    return torch.zeros(0)
+    features: list[torch.Tensor] = []
+    for layer_idx in SELECTED_LAYERS:
+        layer = hidden_states[layer_idx][mask]
+        token_norms = torch.linalg.vector_norm(layer, dim=1)
+        features.extend(
+            [
+                token_norms.mean(),
+                token_norms.std(unbiased=False),
+                token_norms.max(),
+            ]
+        )
+
+    seq_len = mask.sum().to(dtype=hidden_states.dtype)
+    max_len = torch.tensor(mask.numel(), device=hidden_states.device, dtype=hidden_states.dtype)
+    features.append(seq_len / max_len.clamp_min(1.0))
+
+    return torch.stack(features).float()
 
 
 def aggregation_and_feature_extraction(
