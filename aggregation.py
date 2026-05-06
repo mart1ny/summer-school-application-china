@@ -55,12 +55,9 @@ def aggregate(
 
     layer_idx = int(os.environ.get("LAYER_IDX", DEFAULT_LAYER_IDX))
     layer = hidden_states[layer_idx]              # (seq_len, hidden_dim)
-    valid_tokens = layer[mask]                    # (n_real_tokens, hidden_dim)
-
-    mean_pool = valid_tokens.mean(dim=0)
     last_token = layer[last_pos]
 
-    return torch.cat([mean_pool, last_token], dim=0).float()
+    return last_token.float()
 
 
 def extract_geometric_features(
