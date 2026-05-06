@@ -13,8 +13,11 @@ from __future__ import annotations
 import numpy as np
 import torch
 import torch.nn as nn
-from sklearn.metrics import f1_score
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.preprocessing import StandardScaler
+
+
+RANDOM_STATE = 42
 
 
 class HallucinationProbe(nn.Module):
@@ -43,8 +46,10 @@ class HallucinationProbe(nn.Module):
             input_dim: Feature vector dimensionality.
         """
         self._net = nn.Sequential(
+            nn.Dropout(p=0.10),
             nn.Linear(input_dim, 256),
             nn.ReLU(),
+            nn.Dropout(p=0.20),
             nn.Linear(256, 1),
         )
 
@@ -79,6 +84,9 @@ class HallucinationProbe(nn.Module):
         Returns:
             ``self`` (for method chaining).
         """
+        np.random.seed(RANDOM_STATE)
+        torch.manual_seed(RANDOM_STATE)
+
         X_scaled = self._scaler.fit_transform(X)
 
         self._build_network(X_scaled.shape[1])
@@ -95,10 +103,10 @@ class HallucinationProbe(nn.Module):
         # ------------------------------------------------------------------
         # STUDENT: Replace or extend the training loop below.
         # ------------------------------------------------------------------
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=8e-4, weight_decay=1e-3)
 
         self.train()
-        for _ in range(200):
+        for _ in range(300):
             optimizer.zero_grad()
             logits = self(X_t)
             loss = criterion(logits, y_t)
@@ -112,7 +120,7 @@ class HallucinationProbe(nn.Module):
     def fit_hyperparameters(
         self, X_val: np.ndarray, y_val: np.ndarray
     ) -> "HallucinationProbe":
-        """Tune the decision threshold on a validation set to maximise F1.
+        """Tune the decision threshold on a validation set to maximise accuracy.
 
         The chosen threshold is stored in ``self._threshold`` and used by
         subsequent ``predict`` calls.  Call this after ``fit`` and before
@@ -133,12 +141,17 @@ class HallucinationProbe(nn.Module):
         candidates = np.unique(np.concatenate([probs, np.linspace(0.0, 1.0, 101)]))
 
         best_threshold = 0.5
+        best_accuracy = -1.0
         best_f1 = -1.0
         for t in candidates:
             y_pred_t = (probs >= t).astype(int)
-            score = f1_score(y_val, y_pred_t, zero_division=0)
-            if score > best_f1:
-                best_f1 = score
+            accuracy = accuracy_score(y_val, y_pred_t)
+            f1 = f1_score(y_val, y_pred_t, zero_division=0)
+            if (accuracy > best_accuracy) or (
+                accuracy == best_accuracy and f1 > best_f1
+            ):
+                best_accuracy = accuracy
+                best_f1 = f1
                 best_threshold = float(t)
 
         self._threshold = best_threshold
@@ -175,4 +188,3 @@ class HallucinationProbe(nn.Module):
             logits = self(X_t)
             prob_pos = torch.sigmoid(logits).numpy()
         return np.stack([1.0 - prob_pos, prob_pos], axis=1)
-
