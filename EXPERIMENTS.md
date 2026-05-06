@@ -25,6 +25,7 @@ reported metrics and final submission.
 | 0 | `experiment/stage-0-official-skeleton` | Original repository skeleton baseline |
 | 1 | `experiment/stage-1-strong-linear-baseline` | Multi-layer pooling + deterministic logistic probe |
 | 2 | `main` | Current advanced candidate with trajectory + spectral features |
+| 3 | `experiment/stage-3-layer-wise-probing` | Single-layer mean+last probing controlled by `LAYER_IDX` |
 
 ## Colab Run Template
 
@@ -55,6 +56,7 @@ Fill this table after Colab runs.
 | 0 | `experiment/stage-0-official-skeleton` | final layer, last token | original MLP | N/A | N/A | 0.6686 | 0.7404 | control baseline; feature dim 896 |
 | 1 | `experiment/stage-1-strong-linear-baseline` | selected layers, mean/last/max pooling | LogisticRegression | N/A | N/A | 0.6461 | 0.6865 | worse than Stage 0; high-dimensional concatenation overfits/does not generalize |
 | 2 | `main` | pooling + trajectory + spectral features | LogisticRegression | N/A | N/A | 0.6469 | 0.6923 | advanced features did not recover Stage 0 performance; feature dim 13488 |
+| 3 | `experiment/stage-3-layer-wise-probing` | best single layer among tested, mean+last pooling | LogisticRegression | N/A | N/A | 0.6339 | 0.7126 | best tested layer was `12`; feature dim 1792; still below Stage 0 |
 
 ## Planned Next Experiments
 
@@ -65,9 +67,21 @@ signal appears inside the transformer.
 
 Expected report table:
 
-| Layer | Pooling | Avg Val Accuracy | Avg Val F1 | Avg Val AUROC |
-|---:|---|---:|---:|---:|
-| TBD | mean + last | TBD | TBD | TBD |
+| Layer | Pooling | Feature Dim | Avg Val AUROC | Avg Test-Split Accuracy | Avg Test-Split F1 | Avg Test-Split AUROC |
+|---:|---|---:|---:|---:|---:|---:|
+| 12 | mean + last | 1792 | 0.6339 | 0.7126 | 0.8242 | 0.6635 |
+| 8 | mean + last | 1792 | 0.5943 | 0.7054 | 0.8204 | 0.6313 |
+| -12 | mean + last | 1792 | 0.6154 | 0.7040 | 0.8202 | 0.6915 |
+| 16 | mean + last | 1792 | 0.6204 | 0.6923 | 0.8153 | 0.6788 |
+| -4 | mean + last | 1792 | 0.6214 | 0.6923 | 0.8112 | 0.6409 |
+| -1 | mean + last | 1792 | 0.5970 | 0.6864 | 0.8093 | 0.6266 |
+| -8 | mean + last | 1792 | 0.6451 | 0.6850 | 0.8043 | 0.6615 |
+| -2 | mean + last | 1792 | 0.6007 | 0.6792 | 0.7953 | 0.6487 |
+| 20 | mean + last | 1792 | 0.6356 | 0.6748 | 0.7956 | 0.6513 |
+
+Takeaway: adding mean pooling to last-token features did not beat the original
+final-layer last-token baseline. The next experiment should isolate
+last-token-only layer-wise probing.
 
 ### Pooling Ablation
 
