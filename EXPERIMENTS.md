@@ -66,7 +66,7 @@ Fill this table after Colab runs.
 | 5 | `experiment/stage-5-mlp-kfold-final-layer` | final layer, last token | tuned MLP | N/A | N/A | 0.7065 | 0.6866 | better ranking but poor hard-label accuracy; threshold/probability calibration needs work |
 | 6 | `experiment/stage-6-original-mlp-kfold` | final layer, last token | original MLP | N/A | N/A | 0.6979 | 0.6952 | good ranking but poor accuracy; likely threshold/class-imbalance issue |
 | 7 | `experiment/stage-7-imbalance-aware-mlp` | final layer, last token | imbalance-aware MLP | N/A | N/A | 0.7025 | 0.6894 | imbalance-aware calibration preserved AUROC but did not improve primary accuracy |
-| 8 | `experiment/stage-8-tail-window-features` | last token + final-layer tail windows | original MLP | TBD | TBD | TBD | TBD | motivated by response-length/context-overlap data analysis |
+| 8 | `experiment/stage-8-tail-window-features` | last token + final-layer tail windows | original MLP | N/A | N/A | 0.7097 | 0.7170 | best data-driven feature branch so far; feature dim 3611 |
 
 ## Planned Next Experiments
 
