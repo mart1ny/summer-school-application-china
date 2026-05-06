@@ -18,6 +18,11 @@ single entry point called from the notebook.
 from __future__ import annotations
 
 import torch
+import torch.nn.functional as F
+
+
+TAIL_WINDOWS = (16, 32, 64, 128)
+EPS = 1e-6
 
 
 def aggregate(
@@ -41,21 +46,33 @@ def aggregate(
         Replace or extend the skeleton below with alternative layer selection,
         token pooling (mean, max, weighted), or multi-layer fusion strategies.
     """
-    # ------------------------------------------------------------------
-    # STUDENT: Replace or extend the aggregation below.
-    # ------------------------------------------------------------------
+    mask = attention_mask.to(device=hidden_states.device, dtype=torch.bool)
+    if not bool(mask.any()):
+        mask = torch.ones_like(mask, dtype=torch.bool)
 
-    # Default: last real token of the final transformer layer.
-    layer = hidden_states[-1]          # (seq_len, hidden_dim)
+    layer = hidden_states[-1].float()          # (seq_len, hidden_dim)
+    real_positions = mask.nonzero(as_tuple=False).flatten()
+    last_pos = int(real_positions[-1].item())
+    valid_tokens = layer[mask]
 
-    # Find the index of the last real (non-padding) token.
-    real_positions = attention_mask.nonzero(as_tuple=False)  # (n_real, 1)
-    last_pos = int(real_positions[-1].item())                 # scalar index
+    last_token = layer[last_pos]
 
-    feature = layer[last_pos]          # (hidden_dim,)
+    # Data analysis showed that response-side behavior is much more predictive
+    # than prompt-side length. Since the response is appended at the end, tail
+    # windows approximate answer-only pooling without using raw text or token ids.
+    tail_32 = valid_tokens[-min(32, valid_tokens.size(0)) :]
+    tail_64 = valid_tokens[-min(64, valid_tokens.size(0)) :]
 
-    return feature
-    # ------------------------------------------------------------------
+    tail_mean_32 = tail_32.mean(dim=0)
+    tail_delta_32 = last_token - tail_mean_32
+    tail_mean_64 = tail_64.mean(dim=0)
+
+    scalar_features = _tail_scalar_features(valid_tokens, last_token)
+
+    return torch.cat(
+        [last_token, tail_mean_32, tail_delta_32, tail_mean_64, scalar_features],
+        dim=0,
+    ).float()
 
 
 def extract_geometric_features(
@@ -87,6 +104,49 @@ def extract_geometric_features(
 
     # Placeholder: returns an empty tensor (no geometric features).
     return torch.zeros(0)
+
+
+def _tail_scalar_features(
+    valid_tokens: torch.Tensor,
+    last_token: torch.Tensor,
+) -> torch.Tensor:
+    """Compact answer-tail statistics guided by the EDA length/overlap signals."""
+    features: list[torch.Tensor] = []
+    seq_len = torch.tensor(
+        float(valid_tokens.size(0)),
+        device=valid_tokens.device,
+        dtype=valid_tokens.dtype,
+    )
+    max_len = torch.tensor(
+        512.0,
+        device=valid_tokens.device,
+        dtype=valid_tokens.dtype,
+    )
+    features.extend([seq_len / max_len, torch.log1p(seq_len) / torch.log(max_len)])
+
+    last_norm = torch.linalg.vector_norm(last_token).clamp_min(EPS)
+    features.append(last_norm)
+
+    for window in TAIL_WINDOWS:
+        tail = valid_tokens[-min(window, valid_tokens.size(0)) :]
+        mean = tail.mean(dim=0)
+        norms = torch.linalg.vector_norm(tail, dim=1)
+        features.extend(
+            [
+                torch.tensor(
+                    float(tail.size(0)) / float(window),
+                    device=valid_tokens.device,
+                    dtype=valid_tokens.dtype,
+                ),
+                norms.mean(),
+                norms.std(unbiased=False),
+                norms.max(),
+                F.cosine_similarity(last_token, mean, dim=0),
+                torch.linalg.vector_norm(last_token - mean),
+            ]
+        )
+
+    return torch.stack(features).float()
 
 
 def aggregation_and_feature_extraction(
