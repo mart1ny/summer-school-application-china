@@ -13,8 +13,11 @@ from __future__ import annotations
 import numpy as np
 import torch
 import torch.nn as nn
-from sklearn.metrics import f1_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 from sklearn.preprocessing import StandardScaler
+
+
+RANDOM_STATE = 42
 
 
 class HallucinationProbe(nn.Module):
@@ -30,6 +33,7 @@ class HallucinationProbe(nn.Module):
         self._net: nn.Sequential | None = None  # built lazily in fit()
         self._scaler = StandardScaler()
         self._threshold: float = 0.5  # tuned by fit_hyperparameters()
+        self._logit_prior_shift: float = 0.0
 
     # ------------------------------------------------------------------
     # STUDENT: Replace or extend the network definition below.
@@ -79,6 +83,10 @@ class HallucinationProbe(nn.Module):
         Returns:
             ``self`` (for method chaining).
         """
+        np.random.seed(RANDOM_STATE)
+        torch.manual_seed(RANDOM_STATE)
+
+        y = y.astype(int)
         X_scaled = self._scaler.fit_transform(X)
 
         self._build_network(X_scaled.shape[1])
@@ -86,11 +94,23 @@ class HallucinationProbe(nn.Module):
         X_t = torch.from_numpy(X_scaled).float()
         y_t = torch.from_numpy(y.astype(np.float32))
 
-        # Weight positive examples by neg/pos ratio to handle class imbalance.
         n_pos = int(y.sum())
         n_neg = len(y) - n_pos
-        pos_weight = torch.tensor([n_neg / max(n_pos, 1)], dtype=torch.float32)
-        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        pos_prior = n_pos / max(len(y), 1)
+        neg_prior = n_neg / max(len(y), 1)
+        self._logit_prior_shift = float(
+            np.log(max(pos_prior, 1e-6) / max(neg_prior, 1e-6))
+        )
+
+        # Class-balanced sample weights make both labels contribute equally to
+        # the loss despite the 70/30 hallucinated/truthful imbalance.
+        sample_weights = np.where(
+            y == 1,
+            len(y) / (2.0 * max(n_pos, 1)),
+            len(y) / (2.0 * max(n_neg, 1)),
+        )
+        w_t = torch.from_numpy(sample_weights.astype(np.float32))
+        criterion = nn.BCEWithLogitsLoss(reduction="none")
 
         # ------------------------------------------------------------------
         # STUDENT: Replace or extend the training loop below.
@@ -101,18 +121,20 @@ class HallucinationProbe(nn.Module):
         for _ in range(200):
             optimizer.zero_grad()
             logits = self(X_t)
-            loss = criterion(logits, y_t)
+            loss = (criterion(logits, y_t) * w_t).mean()
             loss.backward()
             optimizer.step()
         # ------------------------------------------------------------------
 
         self.eval()
+        train_probs = self.predict_proba(X)[:, 1]
+        self._threshold = self._best_threshold(train_probs, y)
         return self
 
     def fit_hyperparameters(
         self, X_val: np.ndarray, y_val: np.ndarray
     ) -> "HallucinationProbe":
-        """Tune the decision threshold on a validation set to maximise F1.
+        """Tune the decision threshold on a validation set to maximise accuracy.
 
         The chosen threshold is stored in ``self._threshold`` and used by
         subsequent ``predict`` calls.  Call this after ``fit`` and before
@@ -129,19 +151,7 @@ class HallucinationProbe(nn.Module):
         """
         probs = self.predict_proba(X_val)[:, 1]
 
-        # Candidate thresholds: unique predicted probabilities plus a coarse grid.
-        candidates = np.unique(np.concatenate([probs, np.linspace(0.0, 1.0, 101)]))
-
-        best_threshold = 0.5
-        best_f1 = -1.0
-        for t in candidates:
-            y_pred_t = (probs >= t).astype(int)
-            score = f1_score(y_val, y_pred_t, zero_division=0)
-            if score > best_f1:
-                best_f1 = score
-                best_threshold = float(t)
-
-        self._threshold = best_threshold
+        self._threshold = self._best_threshold(probs, y_val.astype(int))
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -172,7 +182,40 @@ class HallucinationProbe(nn.Module):
         X_scaled = self._scaler.transform(X)
         X_t = torch.from_numpy(X_scaled).float()
         with torch.no_grad():
-            logits = self(X_t)
+            logits = self(X_t) + self._logit_prior_shift
             prob_pos = torch.sigmoid(logits).numpy()
         return np.stack([1.0 - prob_pos, prob_pos], axis=1)
 
+    @staticmethod
+    def _best_threshold(probs: np.ndarray, y_true: np.ndarray) -> float:
+        """Choose threshold for primary accuracy, with imbalance-aware tie-breaks."""
+        candidates = np.unique(np.concatenate([probs, np.linspace(0.05, 0.95, 91)]))
+
+        best_threshold = 0.5
+        best_accuracy = -1.0
+        best_balanced_accuracy = -1.0
+        best_f1 = -1.0
+        for threshold in candidates:
+            y_pred = (probs >= threshold).astype(int)
+            accuracy = accuracy_score(y_true, y_pred)
+            balanced_accuracy = balanced_accuracy_score(y_true, y_pred)
+            f1 = f1_score(y_true, y_pred, zero_division=0)
+
+            if (
+                accuracy > best_accuracy
+                or (
+                    accuracy == best_accuracy
+                    and balanced_accuracy > best_balanced_accuracy
+                )
+                or (
+                    accuracy == best_accuracy
+                    and balanced_accuracy == best_balanced_accuracy
+                    and f1 > best_f1
+                )
+            ):
+                best_accuracy = accuracy
+                best_balanced_accuracy = balanced_accuracy
+                best_f1 = f1
+                best_threshold = float(threshold)
+
+        return best_threshold
