@@ -29,6 +29,7 @@ reported metrics and final submission.
 | 4 | `experiment/stage-4-last-token-layer-wise` | Single-layer last-token probing controlled by `LAYER_IDX` |
 | 5 | `experiment/stage-5-mlp-kfold-final-layer` | Final-layer last-token tuned MLP with stratified K-fold |
 | 6 | `experiment/stage-6-original-mlp-kfold` | Original MLP with final-layer last-token features and stratified K-fold |
+| 7 | `experiment/stage-7-imbalance-aware-mlp` | Class-balanced MLP with prior-aware calibration and accuracy thresholding |
 
 ## Colab Run Template
 
@@ -63,6 +64,7 @@ Fill this table after Colab runs.
 | 4 | `experiment/stage-4-last-token-layer-wise` | best single layer among tested, last-token only | LogisticRegression | N/A | N/A | 0.6694 | 0.6981 | best tested layer was `-1`; feature dim 896; LogisticRegression underperforms original MLP |
 | 5 | `experiment/stage-5-mlp-kfold-final-layer` | final layer, last token | tuned MLP | N/A | N/A | 0.7065 | 0.6866 | better ranking but poor hard-label accuracy; threshold/probability calibration needs work |
 | 6 | `experiment/stage-6-original-mlp-kfold` | final layer, last token | original MLP | N/A | N/A | 0.6979 | 0.6952 | good ranking but poor accuracy; likely threshold/class-imbalance issue |
+| 7 | `experiment/stage-7-imbalance-aware-mlp` | final layer, last token | imbalance-aware MLP | TBD | TBD | TBD | TBD | class-balanced loss + prior-aware probability shift + accuracy threshold |
 
 ## Planned Next Experiments
 
