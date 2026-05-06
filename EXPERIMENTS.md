@@ -27,6 +27,7 @@ reported metrics and final submission.
 | 2 | `main` | Current advanced candidate with trajectory + spectral features |
 | 3 | `experiment/stage-3-layer-wise-probing` | Single-layer mean+last probing controlled by `LAYER_IDX` |
 | 4 | `experiment/stage-4-last-token-layer-wise` | Single-layer last-token probing controlled by `LAYER_IDX` |
+| 5 | `experiment/stage-5-mlp-kfold-final-layer` | Final-layer last-token tuned MLP with stratified K-fold |
 
 ## Colab Run Template
 
@@ -59,6 +60,7 @@ Fill this table after Colab runs.
 | 2 | `main` | pooling + trajectory + spectral features | LogisticRegression | N/A | N/A | 0.6469 | 0.6923 | advanced features did not recover Stage 0 performance; feature dim 13488 |
 | 3 | `experiment/stage-3-layer-wise-probing` | best single layer among tested, mean+last pooling | LogisticRegression | N/A | N/A | 0.6339 | 0.7126 | best tested layer was `12`; feature dim 1792; still below Stage 0 |
 | 4 | `experiment/stage-4-last-token-layer-wise` | best single layer among tested, last-token only | LogisticRegression | N/A | N/A | 0.6694 | 0.6981 | best tested layer was `-1`; feature dim 896; LogisticRegression underperforms original MLP |
+| 5 | `experiment/stage-5-mlp-kfold-final-layer` | final layer, last token | tuned MLP | N/A | N/A | 0.7065 | 0.6866 | better ranking but poor hard-label accuracy; threshold/probability calibration needs work |
 
 ## Planned Next Experiments
 
