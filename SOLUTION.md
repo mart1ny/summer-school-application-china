@@ -41,9 +41,54 @@ With Qwen hidden size `896`, this produces:
 
 `5 layers * 3 pooling methods * 896 = 13440` features per sample.
 
-Optional geometric features are implemented in `extract_geometric_features`,
-but the official `solution.py` keeps `USE_GEOMETRIC = False`, so the submitted
-baseline uses only the hidden-state aggregation above.
+In addition, the main aggregation step appends 48 scalar research-inspired
+features:
+
+- hidden-state trajectory stability features across layers `-12, -8, -4, -2, -1`
+- EigenScore-inspired spectral covariance features for layers `-12, -8, -4, -1`
+
+The final feature dimension is:
+
+`13440 pooled features + 20 trajectory features + 28 spectral features = 13488`.
+
+Optional geometric features are also implemented in `extract_geometric_features`,
+but the official `solution.py` keeps `USE_GEOMETRIC = False`, so the final
+submitted features are produced entirely by the default `aggregate()` path.
+
+## Research-Inspired Features
+
+### Hidden-State Trajectory Stability
+
+The model's representation is treated as a trajectory through transformer
+layers. For both the mean-pooled representation and the last-token
+representation, the solution measures:
+
+- cosine similarity between consecutive selected layers
+- norm of inter-layer representation changes
+- total trajectory length
+- endpoint drift from middle to final layers
+- curvature proxy based on changes in consecutive layer deltas
+
+The intuition is that hallucinated answers may have less stable internal
+representation dynamics across transformer depth.
+
+### EigenScore-Inspired Spectral Features
+
+Inspired by internal-state hallucination detection methods such as INSIDE and
+EigenScore, the solution computes a compact spectrum of token-level
+representations. For each selected layer, it builds a centered token Gram matrix
+after deterministic downsampling to at most 128 real tokens, then extracts:
+
+- log top eigenvalue
+- log total spectral mass
+- eigenvalue entropy
+- log effective rank
+- log spectral gap
+- log condition number proxy
+- log participation ratio
+
+This keeps the method memory-aware while still capturing covariance structure
+and representation diversity inside the answer hidden states.
 
 ## Probe
 
@@ -108,6 +153,8 @@ Included:
 
 - multi-layer aggregation instead of only the final layer
 - mean, last-token, and max pooling concatenation
+- trajectory stability features over transformer depth
+- spectral covariance features inspired by EigenScore/INSIDE
 - standardized linear logistic probe
 - stratified K-fold validation
 
@@ -115,9 +162,9 @@ Not included in the current baseline:
 
 - neural MLP probe: higher overfitting risk on 689 labelled samples
 - heavy feature selection or PCA: adds tuning complexity and extra failure modes
-- geometric features in the official run: `solution.py` keeps
-  `USE_GEOMETRIC = False`, and fixed infrastructure was intentionally left
-  unchanged
+- true semantic entropy: would require multiple generations per prompt and a
+  much heavier pipeline
+- pseudo-labeling: avoided to keep the test set usage conservative
 
 ## Current Validation Result
 
