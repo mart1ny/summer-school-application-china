@@ -30,6 +30,7 @@ reported metrics and final submission.
 | 5 | `experiment/stage-5-mlp-kfold-final-layer` | Final-layer last-token tuned MLP with stratified K-fold |
 | 6 | `experiment/stage-6-original-mlp-kfold` | Original MLP with final-layer last-token features and stratified K-fold |
 | 7 | `experiment/stage-7-imbalance-aware-mlp` | Class-balanced MLP with prior-aware calibration and accuracy thresholding |
+| 8 | `experiment/stage-8-tail-window-features` | Data-driven final-layer tail-window hidden-state features |
 
 ## Colab Run Template
 
@@ -65,6 +66,7 @@ Fill this table after Colab runs.
 | 5 | `experiment/stage-5-mlp-kfold-final-layer` | final layer, last token | tuned MLP | N/A | N/A | 0.7065 | 0.6866 | better ranking but poor hard-label accuracy; threshold/probability calibration needs work |
 | 6 | `experiment/stage-6-original-mlp-kfold` | final layer, last token | original MLP | N/A | N/A | 0.6979 | 0.6952 | good ranking but poor accuracy; likely threshold/class-imbalance issue |
 | 7 | `experiment/stage-7-imbalance-aware-mlp` | final layer, last token | imbalance-aware MLP | N/A | N/A | 0.7025 | 0.6894 | imbalance-aware calibration preserved AUROC but did not improve primary accuracy |
+| 8 | `experiment/stage-8-tail-window-features` | last token + final-layer tail windows | original MLP | TBD | TBD | TBD | TBD | motivated by response-length/context-overlap data analysis |
 
 ## Planned Next Experiments
 
