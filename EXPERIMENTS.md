@@ -53,7 +53,7 @@ Fill this table after Colab runs.
 | Stage | Branch | Feature Summary | Probe | Avg Val Accuracy | Avg Val F1 | Avg Val AUROC | Avg Test-Split Accuracy | Notes |
 |---:|---|---|---|---:|---:|---:|---:|---|
 | 0 | `experiment/stage-0-official-skeleton` | final layer, last token | original MLP | N/A | N/A | 0.6686 | 0.7404 | control baseline; feature dim 896 |
-| 1 | `experiment/stage-1-strong-linear-baseline` | selected layers, mean/last/max pooling | LogisticRegression | TBD | TBD | TBD | TBD | strong reproducible baseline |
+| 1 | `experiment/stage-1-strong-linear-baseline` | selected layers, mean/last/max pooling | LogisticRegression | N/A | N/A | 0.6461 | 0.6865 | worse than Stage 0; high-dimensional concatenation overfits/does not generalize |
 | 2 | `main` | pooling + trajectory + spectral features | LogisticRegression | TBD | TBD | TBD | TBD | advanced research candidate |
 
 ## Planned Next Experiments
