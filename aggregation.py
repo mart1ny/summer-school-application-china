@@ -17,10 +17,12 @@ single entry point called from the notebook.
 
 from __future__ import annotations
 
+import os
+
 import torch
 
 
-SELECTED_LAYERS = (-1, -2, -4, -8, -12)
+DEFAULT_LAYER_IDX = -1
 
 
 def aggregate(
@@ -51,18 +53,14 @@ def aggregate(
     real_positions = mask.nonzero(as_tuple=False).flatten()
     last_pos = int(real_positions[-1].item())
 
-    features: list[torch.Tensor] = []
-    for layer_idx in SELECTED_LAYERS:
-        layer = hidden_states[layer_idx]          # (seq_len, hidden_dim)
-        valid_tokens = layer[mask]                # (n_real_tokens, hidden_dim)
+    layer_idx = int(os.environ.get("LAYER_IDX", DEFAULT_LAYER_IDX))
+    layer = hidden_states[layer_idx]              # (seq_len, hidden_dim)
+    valid_tokens = layer[mask]                    # (n_real_tokens, hidden_dim)
 
-        mean_pool = valid_tokens.mean(dim=0)
-        last_token = layer[last_pos]
-        max_pool = valid_tokens.max(dim=0).values
+    mean_pool = valid_tokens.mean(dim=0)
+    last_token = layer[last_pos]
 
-        features.extend([mean_pool, last_token, max_pool])
-
-    return torch.cat(features, dim=0).float()
+    return torch.cat([mean_pool, last_token], dim=0).float()
 
 
 def extract_geometric_features(
@@ -92,17 +90,14 @@ def extract_geometric_features(
     if not bool(mask.any()):
         mask = torch.ones_like(mask, dtype=torch.bool)
 
-    features: list[torch.Tensor] = []
-    for layer_idx in SELECTED_LAYERS:
-        layer = hidden_states[layer_idx][mask]
-        token_norms = torch.linalg.vector_norm(layer, dim=1)
-        features.extend(
-            [
-                token_norms.mean(),
-                token_norms.std(unbiased=False),
-                token_norms.max(),
-            ]
-        )
+    layer_idx = int(os.environ.get("LAYER_IDX", DEFAULT_LAYER_IDX))
+    layer = hidden_states[layer_idx][mask]
+    token_norms = torch.linalg.vector_norm(layer, dim=1)
+    features: list[torch.Tensor] = [
+        token_norms.mean(),
+        token_norms.std(unbiased=False),
+        token_norms.max(),
+    ]
 
     seq_len = mask.sum().to(dtype=hidden_states.dtype)
     max_len = torch.tensor(mask.numel(), device=hidden_states.device, dtype=hidden_states.dtype)
