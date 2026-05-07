@@ -68,7 +68,7 @@ Fill this table after Colab runs.
 | 6 | `experiment/stage-6-original-mlp-kfold` | final layer, last token | original MLP | N/A | N/A | 0.6979 | 0.6952 | good ranking but poor accuracy; likely threshold/class-imbalance issue |
 | 7 | `experiment/stage-7-imbalance-aware-mlp` | final layer, last token | imbalance-aware MLP | N/A | N/A | 0.7025 | 0.6894 | imbalance-aware calibration preserved AUROC but did not improve primary accuracy |
 | 8 | `experiment/stage-8-tail-window-features` | last token + final-layer tail windows | original MLP | N/A | N/A | 0.7097 | 0.7170 | best data-driven feature branch so far; feature dim 3611 |
-| 9 | `experiment/stage-9-tail-window-single-split` | last token + final-layer tail windows | original MLP | TBD | TBD | TBD | TBD | apples-to-apples comparison with Stage 0 single split |
+| 9 | `experiment/stage-9-tail-window-single-split` | last token + final-layer tail windows | original MLP | N/A | N/A | 0.7452 | 0.5962 | severe single-split overfit despite high validation AUROC |
 
 ## Planned Next Experiments
 
