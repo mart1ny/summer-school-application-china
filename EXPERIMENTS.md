@@ -32,6 +32,7 @@ reported metrics and final submission.
 | 7 | `experiment/stage-7-imbalance-aware-mlp` | Class-balanced MLP with prior-aware calibration and accuracy thresholding |
 | 8 | `experiment/stage-8-tail-window-features` | Data-driven final-layer tail-window hidden-state features |
 | 9 | `experiment/stage-9-tail-window-single-split` | Stage 8 tail-window features evaluated with the original single split |
+| 10 | `experiment/stage-10-boosting-final-layer` | Histogram gradient boosting on final-layer last-token features |
 
 ## Colab Run Template
 
@@ -69,6 +70,7 @@ Fill this table after Colab runs.
 | 7 | `experiment/stage-7-imbalance-aware-mlp` | final layer, last token | imbalance-aware MLP | N/A | N/A | 0.7025 | 0.6894 | imbalance-aware calibration preserved AUROC but did not improve primary accuracy |
 | 8 | `experiment/stage-8-tail-window-features` | last token + final-layer tail windows | original MLP | N/A | N/A | 0.7097 | 0.7170 | best data-driven feature branch so far; feature dim 3611 |
 | 9 | `experiment/stage-9-tail-window-single-split` | last token + final-layer tail windows | original MLP | N/A | N/A | 0.7452 | 0.5962 | severe single-split overfit despite high validation AUROC |
+| 10 | `experiment/stage-10-boosting-final-layer` | final layer, last token | HistGradientBoosting | TBD | TBD | TBD | TBD | tree boosting baseline using only allowed sklearn dependency |
 
 ## Planned Next Experiments
 
