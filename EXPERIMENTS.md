@@ -35,6 +35,7 @@ reported metrics and final submission.
 | 10 | `experiment/stage-10-boosting-final-layer` | Histogram gradient boosting on final-layer last-token features |
 | 11 | `experiment/stage-11-mlp-ensemble-final-layer` | Averaged ensemble of seeded MLP probes on final-layer last-token features |
 | 12 | `experiment/stage-12-layerwise-research-ensemble` | Layer-wise MLP ensemble with trajectory and spectral covariance scalars |
+| 13 | `experiment/stage-13-mlp-seed-search` | Original baseline MLP with fixed `PROBE_SEED` for seed sweep |
 
 ## Colab Run Template
 
@@ -75,6 +76,7 @@ Fill this table after Colab runs.
 | 10 | `experiment/stage-10-boosting-final-layer` | final layer, last token | HistGradientBoosting | N/A | N/A | 0.6359 | 0.7019 | near majority-level accuracy; tree boosting underfits dense hidden vectors |
 | 11 | `experiment/stage-11-mlp-ensemble-final-layer` | final layer, last token | 5-seed MLP ensemble | N/A | N/A | 0.6690 | 0.7212 | improves stability/AUROC but still below Stage 0 primary accuracy |
 | 12 | `experiment/stage-12-layerwise-research-ensemble` | 9 layer-wise last-token blocks + trajectory/spectral scalars | layer-wise MLP ensemble | N/A | N/A | 0.6902 | 0.7212 | full research ensemble stable but below Stage 0 primary accuracy; feature dim 8104 |
+| 13 | `experiment/stage-13-mlp-seed-search` | final layer, last token | original MLP with fixed seed | TBD | TBD | TBD | TBD | sweep `PROBE_SEED` to test whether Stage 0 was seed-sensitive |
 
 ## Planned Next Experiments
 
