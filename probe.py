@@ -10,11 +10,21 @@ and their signatures must not change.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import torch
 import torch.nn as nn
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
+
+
+DEFAULT_PROBE_SEED = 42
+
+
+def _probe_seed() -> int:
+    """Read fixed seed from env so Colab can sweep seeds without code edits."""
+    return int(os.environ.get("PROBE_SEED", DEFAULT_PROBE_SEED))
 
 
 class HallucinationProbe(nn.Module):
@@ -79,6 +89,10 @@ class HallucinationProbe(nn.Module):
         Returns:
             ``self`` (for method chaining).
         """
+        seed = _probe_seed()
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+
         X_scaled = self._scaler.fit_transform(X)
 
         self._build_network(X_scaled.shape[1])
@@ -175,4 +189,3 @@ class HallucinationProbe(nn.Module):
             logits = self(X_t)
             prob_pos = torch.sigmoid(logits).numpy()
         return np.stack([1.0 - prob_pos, prob_pos], axis=1)
-
