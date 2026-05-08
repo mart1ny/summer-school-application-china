@@ -34,6 +34,7 @@ reported metrics and final submission.
 | 9 | `experiment/stage-9-tail-window-single-split` | Stage 8 tail-window features evaluated with the original single split |
 | 10 | `experiment/stage-10-boosting-final-layer` | Histogram gradient boosting on final-layer last-token features |
 | 11 | `experiment/stage-11-mlp-ensemble-final-layer` | Averaged ensemble of seeded MLP probes on final-layer last-token features |
+| 12 | `experiment/stage-12-layerwise-research-ensemble` | Layer-wise MLP ensemble with trajectory and spectral covariance scalars |
 
 ## Colab Run Template
 
@@ -73,6 +74,7 @@ Fill this table after Colab runs.
 | 9 | `experiment/stage-9-tail-window-single-split` | last token + final-layer tail windows | original MLP | N/A | N/A | 0.7452 | 0.5962 | severe single-split overfit despite high validation AUROC |
 | 10 | `experiment/stage-10-boosting-final-layer` | final layer, last token | HistGradientBoosting | N/A | N/A | 0.6359 | 0.7019 | near majority-level accuracy; tree boosting underfits dense hidden vectors |
 | 11 | `experiment/stage-11-mlp-ensemble-final-layer` | final layer, last token | 5-seed MLP ensemble | N/A | N/A | 0.6690 | 0.7212 | improves stability/AUROC but still below Stage 0 primary accuracy |
+| 12 | `experiment/stage-12-layerwise-research-ensemble` | 9 layer-wise last-token blocks + trajectory/spectral scalars | layer-wise MLP ensemble | TBD | TBD | TBD | TBD | tests full research hypothesis without one huge concatenation classifier |
 
 ## Planned Next Experiments
 
