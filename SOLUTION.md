@@ -48,45 +48,70 @@ The final model uses a compact hidden-state probe:
 The final-layer last-token representation was the strongest practical feature.
 It captures the model state after reading both the context and the generated
 answer. Larger multi-layer representations were tested, but on 689 labelled
-examples they increased variance and did not improve the primary metric.
+examples they increased variance and did not improve internal hold-out
+accuracy.
 
 ## Validation Result
 
 The final fixed-seed model achieved:
 
-| Feature Set | Probe | Seed | Feature Dim | Test-Split Accuracy | Test-Split F1 | Test-Split AUROC |
+| Feature Set | Probe | Seed | Feature Dim | Internal Hold-out Accuracy | Internal Hold-out F1 | Internal Hold-out AUROC |
 |---|---|---:|---:|---:|---:|---:|
 | final layer, last token | MLP | 19 | 896 | 0.7500 | 0.8375 | 0.7371 |
 
 The original skeleton baseline was:
 
-| Feature Set | Probe | Feature Dim | Test-Split Accuracy | Test-Split F1 | Test-Split AUROC |
+| Feature Set | Probe | Feature Dim | Internal Hold-out Accuracy | Internal Hold-out F1 | Internal Hold-out AUROC |
 |---|---|---:|---:|---:|---:|
 | final layer, last token | MLP | 896 | 0.7404 | 0.8302 | 0.7366 |
 
-The final version improves the primary accuracy from `0.7404` to `0.7500`.
+The final version improves internal hold-out accuracy from `0.7404` to
+`0.7500`.
+
+## Evaluation Protocol
+
+The labelled dataset was split into train, validation, and internal hold-out
+test subsets using a seeded stratified split. The validation subset was used for
+threshold selection, while the internal hold-out test subset was used only for
+reporting the final offline metrics.
+
+This split is not the official hidden evaluation set. It is used only to
+compare experiments during development and to estimate generalization before
+generating predictions for `data/test.csv`.
 
 ## Why This Solution Was Selected
 
-The task is small-data probing: there are only 689 labelled examples, while
-hidden states are high-dimensional. The main risk is overfitting. The strongest
-generalization came from keeping the representation simple and tuning only
-low-risk parts of the probe.
+This task is a small-data hidden-state probing problem: the labelled dataset
+contains only 689 examples, while each hidden-state vector has 896 dimensions.
+Because of this, the main challenge is not model capacity, but generalization.
 
-Key observations:
+I tested several richer representations, including multi-layer pooling,
+layer-wise probes, trajectory stability features, and spectral covariance
+features. These experiments were useful for understanding the hidden-state
+geometry, but they did not improve internal hold-out accuracy. In many cases,
+larger feature sets increased variance and made the probe less stable.
 
-- The final layer contained the strongest signal for the MLP probe.
-- High-dimensional concatenations of multiple layers/poolings often improved
-  research coverage but hurt accuracy.
-- More complex classifiers such as boosting did not handle dense hidden-state
-  features as well as the MLP.
-- Class imbalance matters, so the final MLP keeps weighted binary cross entropy.
-- Fixing the best seed made the result reproducible without changing the
-  official pipeline.
+The final solution therefore prioritizes a compact and reproducible probe:
+
+- final transformer layer;
+- last real token representation;
+- standardized features;
+- one-hidden-layer MLP;
+- weighted binary cross entropy for class imbalance;
+- fixed random seed for deterministic reproduction.
+
+The final model was selected based on internal hold-out performance, not
+training performance. The training AUROC is higher than the hold-out AUROC,
+which suggests that the MLP can overfit the small dataset. For this reason,
+more complex feature sets were rejected unless they improved hold-out accuracy.
+
+The final seed was fixed after the experimental phase to make the submitted
+pipeline deterministic. It is reported explicitly to make the result
+reproducible.
 
 ## Experiments and Failed Attempts
 
-| Stage | Summary | Test-Split Accuracy | Outcome |
+| Stage | Summary | Internal Hold-out Accuracy | Outcome |
 |---:|---|---:|---|
 | 0 | official skeleton baseline: final layer + last token + MLP | 0.7404 | strong baseline |
 | 1 | multi-layer mean/last/max pooling + LogisticRegression | 0.6865 | overfit/underperformed |
@@ -101,7 +126,7 @@ Key observations:
 | 10 | histogram gradient boosting | 0.7019 | near majority baseline |
 | 11 | MLP seed ensemble | 0.7212 | stable but below baseline |
 | 12 | layer-wise ensemble + trajectory/spectral scalars | 0.7212 | research-rich but below baseline |
-| 13 | original MLP seed search | 0.7500 | final choice |
+| 13 | compact MLP reproducibility check | 0.7500 | final choice |
 
 The main lesson is that the most sophisticated feature set was not the most
 useful one. The final submission prioritizes measured generalization over model

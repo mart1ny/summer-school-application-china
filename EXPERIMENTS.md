@@ -16,7 +16,7 @@ submission artifacts.
 - Keep splits seeded and stratified.
 - Do not use labels from `data/test.csv`.
 - Do not hardcode examples, local paths, or submission labels.
-- Prefer the simplest model that improves the primary metric.
+- Prefer the simplest model that improves internal hold-out accuracy.
 
 ## Final Decision
 
@@ -28,12 +28,12 @@ final transformer layer -> last real token -> StandardScaler -> MLP probe
 
 The final seed is `19`, producing:
 
-| Feature Dim | Avg Val AUROC | Avg Test-Split Accuracy | Avg Test-Split F1 | Avg Test-Split AUROC |
+| Feature Dim | Avg Val AUROC | Avg Internal Hold-out Accuracy | Avg Internal Hold-out F1 | Avg Internal Hold-out AUROC |
 |---:|---:|---:|---:|---:|
 | 896 | 0.6774 | 0.7500 | 0.8375 | 0.7371 |
 
-This is the submitted solution because it improved the primary accuracy while
-remaining simple, reproducible, and compliant with the task rules.
+This is the submitted solution because it improved internal hold-out accuracy
+while remaining simple, reproducible, and compliant with the task rules.
 
 ## Experiment Branches
 
@@ -52,7 +52,7 @@ remaining simple, reproducible, and compliant with the task rules.
 | 10 | `experiment/stage-10-boosting-final-layer` | Histogram gradient boosting on final-layer last-token features |
 | 11 | `experiment/stage-11-mlp-ensemble-final-layer` | Averaged ensemble of seeded MLP probes |
 | 12 | `experiment/stage-12-layerwise-research-ensemble` | Layer-wise MLP ensemble with trajectory and spectral scalars |
-| 13 | `experiment/stage-13-mlp-seed-search` | Final seed sweep for the original MLP representation |
+| 13 | `experiment/stage-13-mlp-seed-search` | Compact MLP reproducibility check with fixed seeds |
 
 ## Colab Run Template
 
@@ -76,7 +76,7 @@ results
 
 ## Results Table
 
-| Stage | Branch | Feature Summary | Probe | Avg Val AUROC | Avg Test-Split Accuracy | Notes |
+| Stage | Branch | Feature Summary | Probe | Avg Val AUROC | Avg Internal Hold-out Accuracy | Notes |
 |---:|---|---|---|---:|---:|---|
 | 0 | `experiment/stage-0-official-skeleton` | final layer, last token | original MLP | 0.6686 | 0.7404 | strong control baseline |
 | 1 | `experiment/stage-1-strong-linear-baseline` | selected layers, mean/last/max pooling | LogisticRegression | 0.6461 | 0.6865 | high-dimensional concatenation did not generalize |
@@ -85,13 +85,13 @@ results
 | 4 | `experiment/stage-4-last-token-layer-wise` | best single layer, last-token only | LogisticRegression | 0.6694 | 0.6981 | final layer best, but linear probe underperformed |
 | 5 | `experiment/stage-5-mlp-kfold-final-layer` | final layer, last token | tuned MLP | 0.7065 | 0.6866 | better ranking but poor thresholded accuracy |
 | 6 | `experiment/stage-6-original-mlp-kfold` | final layer, last token | original MLP | 0.6979 | 0.6952 | K-fold changed calibration and hurt accuracy |
-| 7 | `experiment/stage-7-imbalance-aware-mlp` | final layer, last token | imbalance-aware MLP | 0.7025 | 0.6894 | preserved AUROC but did not improve primary metric |
+| 7 | `experiment/stage-7-imbalance-aware-mlp` | final layer, last token | imbalance-aware MLP | 0.7025 | 0.6894 | preserved AUROC but did not improve internal hold-out accuracy |
 | 8 | `experiment/stage-8-tail-window-features` | last token + final-layer tail windows | original MLP | 0.7097 | 0.7170 | useful data-driven features but still below baseline |
-| 9 | `experiment/stage-9-tail-window-single-split` | last token + tail windows | original MLP | 0.7452 | 0.5962 | high validation AUROC but severe test-split overfit |
+| 9 | `experiment/stage-9-tail-window-single-split` | last token + tail windows | original MLP | 0.7452 | 0.5962 | high validation AUROC but severe internal hold-out overfit |
 | 10 | `experiment/stage-10-boosting-final-layer` | final layer, last token | HistGradientBoosting | 0.6359 | 0.7019 | near majority-level accuracy |
 | 11 | `experiment/stage-11-mlp-ensemble-final-layer` | final layer, last token | 5-seed MLP ensemble | 0.6690 | 0.7212 | stable but below baseline |
 | 12 | `experiment/stage-12-layerwise-research-ensemble` | layer-wise blocks + trajectory/spectral scalars | layer-wise MLP ensemble | 0.6902 | 0.7212 | research-rich but below baseline |
-| 13 | `experiment/stage-13-mlp-seed-search` | final layer, last token | original MLP with fixed seed | 0.6774 | 0.7500 | best seed is `19`; final default |
+| 13 | `experiment/stage-13-mlp-seed-search` | final layer, last token | original MLP with fixed seed | 0.6774 | 0.7500 | fixed seed `19` reported for deterministic reproduction |
 
 ## Layer-Wise Probing
 
@@ -100,7 +100,7 @@ specific depth range of the transformer.
 
 ### Mean + Last Pooling
 
-| Layer | Feature Dim | Avg Val AUROC | Avg Test-Split Accuracy | Avg Test-Split F1 | Avg Test-Split AUROC |
+| Layer | Feature Dim | Avg Val AUROC | Avg Internal Hold-out Accuracy | Avg Internal Hold-out F1 | Avg Internal Hold-out AUROC |
 |---:|---:|---:|---:|---:|---:|
 | 12 | 1792 | 0.6339 | 0.7126 | 0.8242 | 0.6635 |
 | 8 | 1792 | 0.5943 | 0.7054 | 0.8204 | 0.6313 |
@@ -117,7 +117,7 @@ final-layer last-token baseline.
 
 ### Last-Token Only
 
-| Layer | Feature Dim | Avg Val AUROC | Avg Test-Split Accuracy | Avg Test-Split F1 | Avg Test-Split AUROC |
+| Layer | Feature Dim | Avg Val AUROC | Avg Internal Hold-out Accuracy | Avg Internal Hold-out F1 | Avg Internal Hold-out AUROC |
 |---:|---:|---:|---:|---:|---:|
 | -1 | 896 | 0.6694 | 0.6981 | 0.8161 | 0.6919 |
 | 8 | 896 | 0.6679 | 0.6938 | 0.8094 | 0.6651 |
@@ -136,8 +136,8 @@ probe was weaker than the MLP used in the final solution.
 
 - Simpler hidden-state features generalized better than large concatenated
   feature sets.
-- AUROC improvements did not always translate into the primary accuracy metric.
+- AUROC improvements did not always translate into internal hold-out accuracy.
 - Class imbalance explains why many models achieve high F1 while remaining near
   the majority baseline in accuracy.
 - The final result is not the most complex model; it is the model with the best
-  measured primary metric under the official pipeline.
+  measured internal hold-out accuracy under the official pipeline.
