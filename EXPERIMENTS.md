@@ -65,7 +65,7 @@ Fill this table after Colab runs.
 |---:|---|---|---|---:|---:|---:|---:|---|
 | 0 | `experiment/stage-0-official-skeleton` | final layer, last token | original MLP | N/A | N/A | 0.6686 | 0.7404 | control baseline; feature dim 896 |
 | 1 | `experiment/stage-1-strong-linear-baseline` | selected layers, mean/last/max pooling | LogisticRegression | N/A | N/A | 0.6461 | 0.6865 | worse than Stage 0; high-dimensional concatenation overfits/does not generalize |
-| 2 | `main` | pooling + trajectory + spectral features | LogisticRegression | N/A | N/A | 0.6469 | 0.6923 | advanced features did not recover Stage 0 performance; feature dim 13488 |
+| 2 | `experiment/stage-2-advanced-candidate` | pooling + trajectory + spectral features | LogisticRegression | N/A | N/A | 0.6469 | 0.6923 | advanced features did not recover Stage 0 performance; feature dim 13488 |
 | 3 | `experiment/stage-3-layer-wise-probing` | best single layer among tested, mean+last pooling | LogisticRegression | N/A | N/A | 0.6339 | 0.7126 | best tested layer was `12`; feature dim 1792; still below Stage 0 |
 | 4 | `experiment/stage-4-last-token-layer-wise` | best single layer among tested, last-token only | LogisticRegression | N/A | N/A | 0.6694 | 0.6981 | best tested layer was `-1`; feature dim 896; LogisticRegression underperforms original MLP |
 | 5 | `experiment/stage-5-mlp-kfold-final-layer` | final layer, last token | tuned MLP | N/A | N/A | 0.7065 | 0.6866 | better ranking but poor hard-label accuracy; threshold/probability calibration needs work |
@@ -76,7 +76,7 @@ Fill this table after Colab runs.
 | 10 | `experiment/stage-10-boosting-final-layer` | final layer, last token | HistGradientBoosting | N/A | N/A | 0.6359 | 0.7019 | near majority-level accuracy; tree boosting underfits dense hidden vectors |
 | 11 | `experiment/stage-11-mlp-ensemble-final-layer` | final layer, last token | 5-seed MLP ensemble | N/A | N/A | 0.6690 | 0.7212 | improves stability/AUROC but still below Stage 0 primary accuracy |
 | 12 | `experiment/stage-12-layerwise-research-ensemble` | 9 layer-wise last-token blocks + trajectory/spectral scalars | layer-wise MLP ensemble | N/A | N/A | 0.6902 | 0.7212 | full research ensemble stable but below Stage 0 primary accuracy; feature dim 8104 |
-| 13 | `experiment/stage-13-mlp-seed-search` | final layer, last token | original MLP with fixed seed | N/A | N/A | 0.6635-0.6734 | 0.7019-0.7404 | best initial seed is `7`: matches Stage 0 accuracy and improves AUROC to 0.7499 |
+| 13 | `experiment/stage-13-mlp-seed-search` | final layer, last token | original MLP with fixed seed | N/A | N/A | 0.6774 | 0.7500 | best seed is `19`; final default seed |
 
 ## Planned Next Experiments
 
